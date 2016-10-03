@@ -43,8 +43,8 @@ const char pass[] = "renandstimpy";    // your network password (use for WPA, or
 int keyIndex = 0;
 
 #define LOG_DATA Serial.print
-#define LOG_DATA_LINE(x) Serial.println(x);Serial.flush();
-#define LOG_DATA_LINE2(x,y) Serial.println(x,y);Serial.flush();
+#define LOG_DATA_LINE(x) {Serial.println(x);Serial.flush();}
+#define LOG_DATA_LINE2(x,y) {Serial.println(x,y);Serial.flush();}
 
 
 // Store the MQTT server, client ID, username, and password in flash memory.
@@ -80,6 +80,9 @@ Adafruit_MQTT_Subscribe settemp = Adafruit_MQTT_Subscribe(&mqtt, SETTEMP_FEED);
 
 const char HVAC_FEED[]  = AIO_USERNAME "/feeds/hvac";
 Adafruit_MQTT_Publish hvac_feed = Adafruit_MQTT_Publish(&mqtt, HVAC_FEED);
+
+const char SLOPE_FEED[]  = AIO_USERNAME "/feeds/slope";
+Adafruit_MQTT_Publish slope_feed = Adafruit_MQTT_Publish(&mqtt, SLOPE_FEED);
 
 #ifdef TIMEFEED
 Adafruit_MQTT_Client mqtt2(&client, AIO_SERVER, 8883);
@@ -126,7 +129,7 @@ struct EEPROM_DATA eedata = {
 };
 #pragma pack(pop)
 
-float thermostat(float *humidity)
+float GetDHT11Temp()
 {
   //LOG_DATA_LINE("\n");
 
@@ -154,7 +157,6 @@ float thermostat(float *humidity)
       return 0;
   }
 
-  *humidity = DHT11.humidity;
   return DHT11.temperature;
 
 }
@@ -169,7 +171,7 @@ unsigned long led_time = SHORT;
 const unsigned long sample_rate = 60000;
 const unsigned long thermostat_warmup = 2000;  // time to allow the thermostat to sample after powerup
 unsigned long last_thermon = 1000; // turn on thermometer at 1 sec
-unsigned long last_sample = last_thermon+thermostat_warmup;  // first thermostat poll at 5sec, then every "sample_rate" seconds
+unsigned long last_sample = last_thermon + thermostat_warmup; // first thermostat poll at 5sec, then every "sample_rate" seconds
 float curTemp = 26;
 
 int last_ee = 0;
@@ -292,7 +294,7 @@ void setup() {
   control.setTemp(26);
   //wdt_enable(WDTO_4S);
   mqtt.subscribe(&settemp);
-  mqtt.will(0,0,0,1);
+  mqtt.will(0, 0, 0, 1);
 
 }
 
@@ -341,7 +343,6 @@ bool MQTT_connect(Adafruit_MQTT_Client &mqtt) {
 bool connected = false;
 void loop() {
   float curtemp;
-  float humidity;
   unsigned long ms;
   int ok;
 
@@ -446,7 +447,7 @@ void loop() {
 
 
     digitalWrite(LED_PIN, HIGH);
-    #ifdef TIMEFEED
+#ifdef TIMEFEED
     connected = MQTT_connect(mqtt2);
 
     if (connected) {
@@ -460,12 +461,12 @@ void loop() {
           char *value = (char *)settemp.lastread;
           LOG_DATA(F("Received timefeed: "));
           LOG_DATA_LINE(value);
-          
+
         }
-        
+
       }
     }
-    #endif
+#endif
     connected = MQTT_connect(mqtt);
 
     if (connected) {
@@ -487,7 +488,7 @@ void loop() {
           LOG_DATA_LINE((float)temp);
           control.setTemp((float)temp);
         }
-        
+
       }
     } else {
       LOG_DATA_LINE("Connect error");
@@ -513,7 +514,7 @@ void loop() {
     rtc.displayTime(lcd);
 #endif
 
-    curtemp = thermostat(&humidity);
+    curtemp = GetDHT11Temp();
     if (curtemp == 0) {
       LOG_DATA_LINE("Temp failed");
       return;
@@ -530,7 +531,7 @@ void loop() {
       //tempsensor.regdump();
       tempsensor.shutdown_wake(1);
     } else {
-       LOG_DATA("NO MCP9808 ");
+      LOG_DATA("NO MCP9808 ");
     }
 
 #ifdef VERBOSE
@@ -540,38 +541,22 @@ void loop() {
     LOG_DATA("C Req:");
 #endif
 
-    // Publish data
-    if (connected) {
-      float state = control.getstate();
-      hvac_feed.publish(state);
-      ok = temp_feed.publish(curtemp);
-#ifdef VERBOSE
-      if (!ok)
-        LOG_DATA_LINE(F("Failed to publish temperature"));
-      //else
-      //  LOG_DATA_LINE(F("Temperature published!"));
-#endif
-      humidity = (float)DHT11.humidity;
-      ok = humidity_feed.publish(humidity);
-#ifdef VERBOSE
-      if (!ok)
-        LOG_DATA_LINE(F("Failed to publish humidity"));
-      //else
-      //  LOG_DATA_LINE(F("Humidity published!"));
-#endif
-    } else {
-      LOG_DATA_LINE("Connect error. NO PUBLISH");
-    }
     int hour = rtc.getHour();
 
     // 5am to 10pm
     enum RTC::DAYOFWEEK weekday = rtc.getDow();
-    int worktime = (hour > 4 && hour < 20) && (weekday > RTC::DAYOFWEEK::DAY_MONDAY && weekday < RTC::DAY_FRIDAY);
+    int worktime = (hour > 4 && hour < 20) && (weekday >= RTC::DAYOFWEEK::DAY_MONDAY && weekday <= RTC::DAY_FRIDAY);
     if (worktime != saveworktime)
       control.setWorktime(worktime);
     saveworktime = worktime;
 
-    float                         set_temp = control.updateTemp(curtemp, humidity);
+    float set_temp = control.updateTemp(curtemp, DHT11.humidity);
+    // Publish data
+    if (connected) {
+      publishData(curtemp);
+    } else {
+      LOG_DATA_LINE("Connect error. NO PUBLISH");
+    }
 #ifdef VERBOSE
     LOG_DATA(" ");
     LOG_DATA(set_temp);
@@ -584,7 +569,34 @@ void loop() {
 
 }
 
+void publishData(float curtemp)
+{
+  int ok;
+  float humidity;
 
+
+  float state = control.getstate();
+  hvac_feed.publish(state);
+  ok = temp_feed.publish(curtemp);
+#ifdef VERBOSE
+  if (!ok) {
+    LOG_DATA_LINE(F("Failed to publish temperature"));
+  }else{
+    LOG_DATA_LINE(F("State"));
+  }
+#endif
+  humidity = (float)DHT11.humidity;
+  ok = humidity_feed.publish(humidity);
+#ifdef VERBOSE
+  if (!ok) {
+    LOG_DATA_LINE(F("Failed to publish humidity"));
+  }
+  //else
+  //  LOG_DATA_LINE(F("Humidity published!"));
+#endif
+  slope_feed.publish(control.getSlope());
+
+}
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
   //  LOG_DATA("SSID: ");
