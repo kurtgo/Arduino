@@ -1,6 +1,21 @@
 [submodule "HVAC-IR-Control"]
 	path = HVAC-IR-Control
 	url = https://github.com/r45635/HVAC-IR-Control.git
+[submodule "kgbrew"]
+	path = kgbrew
+	url = https://github.com/kurtgo/kgbrew.git
+[submodule "libraries/Adafruit_WINC1500"]
+	path = libraries/Adafruit_WINC1500
+	url = https://github.com/adafruit/Adafruit_WINC1500.git
+[submodule "libraries/Arduino-IRremote"]
+	path = libraries/Arduino-IRremote
+	url = https://github.com/z3t0/Arduino-IRremote.git
+[submodule "libraries/pubsubclient"]
+	path = libraries/pubsubclient
+	url = https://github.com/knolleary/pubsubclient.git
+[submodule "libraries/SerialLCD"]
+	path = libraries/SerialLCD
+	url = https://github.com/nkcelectronics/SerialLCD.git
 [submodule "libraries/Adafruit_MAX31865"]
 	path = libraries/Adafruit_MAX31865
 	url = https://github.com/adafruit/Adafruit_MAX31865.git
@@ -10,3 +25,6 @@
 [submodule "libraries/WiFi_AVRISP"]
 	path = libraries/WiFi_AVRISP
 	url = https://github.com/Subhajitdas298/WiFi_AVRISP.git
+[submodule "libraries/Adafruit_MCP9808_Library"]
+	path = libraries/Adafruit_MCP9808_Library
+	url = https://github.com/kurtgo/Adafruit_MCP9808_Library
