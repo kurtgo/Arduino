@@ -6,7 +6,7 @@
  */
 
 #include <TempControl.h>
-#include <arduino.h>
+#include <Arduino.h>
 #include "IRremote2.h"
 TempControl::TempControl() {
 
