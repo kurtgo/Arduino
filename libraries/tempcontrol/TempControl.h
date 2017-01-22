@@ -16,6 +16,7 @@ public:
 	virtual ~TempControl();
 
 	void setTemp(float temp) { desiredtemp = temp; curstate=RESTART;}
+	float getTemp(void) { return desiredtemp;}
 	double getSlope(void);
 	void checkTemp(int curtemp);
 	enum FANSTATE {

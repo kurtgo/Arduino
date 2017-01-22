@@ -23,7 +23,7 @@
 	path = libraries/tm1638-library
 	url = https://github.com/rjbatista/tm1638-library.git
 [submodule "libraries/WiFi_AVRISP"]
-	path = libraries/WiFi_AVRISP
+	path = WiFi_AVRISP
 	url = https://github.com/Subhajitdas298/WiFi_AVRISP.git
 [submodule "libraries/Adafruit_MCP9808_Library"]
 	path = libraries/Adafruit_MCP9808_Library

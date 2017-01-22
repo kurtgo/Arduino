@@ -138,12 +138,12 @@ float TempControl::updateTemp(float ctemp, int humidity)
 	// diff positve too cold
 	float diff = desiredtemp - curtemp;
 	float swing;
-	if (worktime) {
+//	if (worktime) {
 		swing = .15;
-	} else {
-		swing = 2; // 2degree swing on off work times...
+//	} else {
+//		swing = 2; // 2degree swing on off work times...
 		//change_allowed = false;
-	}
+//	}
 	Serial.print("diff: ");
 	Serial.print(diff,2);
 	Serial.print("slope: ");
